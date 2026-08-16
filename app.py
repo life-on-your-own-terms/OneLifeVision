@@ -1280,10 +1280,18 @@ st.caption(
     "Type your answer, or use the microphone to speak."
 )
 
+
+# ============================================================
+# CHAT INPUT + VOICE INPUT
+# ============================================================
+
+# Text input appears at the bottom of the conversation.
 text_input = st.chat_input(
     "Type your answer here..."
 )
 
+# Voice recorder.
+# This stays available for the user to record another answer.
 audio_input = st.audio_input(
     "🎙️ Record your answer",
     sample_rate=16000,
@@ -1298,14 +1306,18 @@ audio_input = st.audio_input(
 user_input = None
 
 
-# TEXT
+# ------------------------------------------------------------
+# TEXT INPUT
+# ------------------------------------------------------------
 
 if text_input:
 
     user_input = text_input
 
 
-# VOICE
+# ------------------------------------------------------------
+# VOICE INPUT
+# ------------------------------------------------------------
 
 elif audio_input:
 
@@ -1324,6 +1336,7 @@ elif audio_input:
             audio_bytes
         ).hexdigest()
 
+        # Prevent the same recording from being submitted twice.
         if audio_hash != st.session_state.last_audio_hash:
 
             try:
@@ -1373,15 +1386,17 @@ if user_input:
 
     else:
 
-        with st.chat_message("user"):
-            st.write(user_input)
-
+        # Add the user's answer to the conversation.
         st.session_state.messages.append(
             {
                 "role": "user",
                 "content": user_input
             }
         )
+
+        # Display the user's answer.
+        with st.chat_message("user"):
+            st.write(user_input)
 
         try:
 
@@ -1396,15 +1411,21 @@ if user_input:
 
             bot_reply = response.choices[0].message.content
 
+            # Display GPT response.
             with st.chat_message("assistant"):
                 st.write(bot_reply)
 
+            # Save GPT response to conversation history.
             st.session_state.messages.append(
                 {
                     "role": "assistant",
                     "content": bot_reply
                 }
             )
+
+            # Clear the voice recorder so the user can record
+            # a completely new answer.
+            st.session_state.last_audio_hash = None
 
         except Exception as e:
 
