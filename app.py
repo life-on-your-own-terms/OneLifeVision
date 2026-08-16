@@ -1274,7 +1274,46 @@ for message in st.session_state.messages:
 # INPUT
 # ============================================================
 
-st.markdown("### Your response")
+# Add CSS so the microphone recorder stays visually fixed
+# near the bottom of the page instead of remaining at the
+# original position in the conversation.
+st.markdown(
+    """
+    <style>
+
+    /* Keep the input area visually near the bottom */
+    div[data-testid="stAudioInput"] {
+        position: fixed;
+        bottom: 20px;
+        right: 24px;
+        z-index: 999;
+        width: 230px;
+    }
+
+    /* Keep the text chat input at the bottom */
+    div[data-testid="stChatInput"] {
+        position: fixed;
+        bottom: 20px;
+        left: 24px;
+        right: 270px;
+        z-index: 998;
+    }
+
+    /* Give the conversation some breathing room above
+       the fixed input controls */
+    .main .block-container {
+        padding-bottom: 110px;
+    }
+
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+# ============================================================
+# INPUT LABEL
+# ============================================================
 
 st.caption(
     "Type your answer, or use the microphone to speak."
@@ -1282,16 +1321,18 @@ st.caption(
 
 
 # ============================================================
-# CHAT INPUT + VOICE INPUT
+# TEXT INPUT
 # ============================================================
 
-# Text input appears at the bottom of the conversation.
 text_input = st.chat_input(
     "Type your answer here..."
 )
 
-# Voice recorder.
-# This stays available for the user to record another answer.
+
+# ============================================================
+# VOICE INPUT
+# ============================================================
+
 audio_input = st.audio_input(
     "🎙️ Record your answer",
     sample_rate=16000,
@@ -1307,7 +1348,7 @@ user_input = None
 
 
 # ------------------------------------------------------------
-# TEXT INPUT
+# TEXT
 # ------------------------------------------------------------
 
 if text_input:
@@ -1316,7 +1357,7 @@ if text_input:
 
 
 # ------------------------------------------------------------
-# VOICE INPUT
+# VOICE
 # ------------------------------------------------------------
 
 elif audio_input:
@@ -1336,7 +1377,6 @@ elif audio_input:
             audio_bytes
         ).hexdigest()
 
-        # Prevent the same recording from being submitted twice.
         if audio_hash != st.session_state.last_audio_hash:
 
             try:
@@ -1356,10 +1396,6 @@ elif audio_input:
                 user_input = transcript.text
 
                 st.session_state.last_audio_hash = audio_hash
-
-                st.info(
-                    f"🎙️ I heard:\n\n{user_input}"
-                )
 
             except Exception as e:
 
@@ -1386,7 +1422,7 @@ if user_input:
 
     else:
 
-        # Add the user's answer to the conversation.
+        # Add user's answer to conversation history.
         st.session_state.messages.append(
             {
                 "role": "user",
@@ -1394,10 +1430,7 @@ if user_input:
             }
         )
 
-        # Display the user's answer.
-        with st.chat_message("user"):
-            st.write(user_input)
-
+        # Get GPT response.
         try:
 
             client = OpenAI(
@@ -1411,11 +1444,7 @@ if user_input:
 
             bot_reply = response.choices[0].message.content
 
-            # Display GPT response.
-            with st.chat_message("assistant"):
-                st.write(bot_reply)
-
-            # Save GPT response to conversation history.
+            # Save GPT response.
             st.session_state.messages.append(
                 {
                     "role": "assistant",
@@ -1423,9 +1452,12 @@ if user_input:
                 }
             )
 
-            # Clear the voice recorder so the user can record
-            # a completely new answer.
+            # Reset audio hash so the next recording is accepted.
             st.session_state.last_audio_hash = None
+
+            # Rerun so the conversation is displayed in the
+            # correct order and the input remains at the bottom.
+            st.rerun()
 
         except Exception as e:
 
